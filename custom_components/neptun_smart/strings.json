@@ -1,0 +1,40 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Neptun Smart",
+        "description": "Set up Neptun Smart Modbus TCP connection",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "timeout": "Timeout (seconds)",
+          "scan_interval": "Scan interval (seconds)",
+          "enable_wireless": "Enable wireless sensors",
+          "wireless_sensors": "Wireless sensors (1-5)",
+          "leak_lines": "Leak lines (1-4)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to controller"
+    },
+    "abort": {
+      "already_configured": "This controller is already configured",
+      "cannot_connect": "Failed to connect to controller"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Neptun Smart options",
+        "data": {
+          "scan_interval": "Scan interval (seconds)",
+          "enable_wireless": "Enable wireless sensors",
+          "wireless_sensors": "Wireless sensors (1-5)",
+          "leak_lines": "Leak lines (1-4)"
+        }
+      }
+    }
+  }
+}
