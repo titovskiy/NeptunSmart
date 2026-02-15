@@ -8,6 +8,7 @@ from typing import Any, Callable
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -31,6 +32,8 @@ class NeptunBinarySensorDescription(BinarySensorEntityDescription):
     """Describe Neptun Smart binary sensor."""
 
     value_fn: Callable[[dict[str, Any]], bool]
+    enabled_default: bool = True
+    diagnostic: bool = False
 
 
 BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
@@ -38,6 +41,8 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
         key="floor_washing_mode",
         name="Floor Washing Mode",
         icon="mdi:shower",
+        enabled_default=False,
+        diagnostic=True,
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_FLOOR_WASHING_MODE)),
     ),
     NeptunBinarySensorDescription(
@@ -68,12 +73,16 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
         key="keypad_locks",
         name="Keypad Locks",
         icon="mdi:keyboard",
+        enabled_default=False,
+        diagnostic=True,
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_KEYPAD_LOCKS)),
     ),
     NeptunBinarySensorDescription(
         key="dual_zone_mode",
         name="Dual Zone Mode",
         icon="mdi:tally-mark-2",
+        enabled_default=False,
+        diagnostic=True,
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_DUAL_ZONE_MODE)),
     ),
 )
@@ -90,7 +99,7 @@ async def async_setup_entry(
         NeptunSmartBinarySensor(coordinator, entry, desc) for desc in BASE_BINARY_SENSORS
     ]
 
-    for idx in range(1, coordinator.leak_lines + 1):
+    for idx in coordinator.detected_leak_lines:
         mask = 1 << (idx - 1)
         entities.append(
             NeptunSmartBinarySensor(
@@ -105,7 +114,23 @@ async def async_setup_entry(
             )
         )
 
-    if coordinator.enable_wireless:
+    for idx in coordinator.installed_counters:
+        entities.append(
+            NeptunSmartBinarySensor(
+                coordinator,
+                entry,
+                NeptunBinarySensorDescription(
+                    key=f"counter_{idx}_enabled",
+                    name=f"Counter {idx} Status",
+                    icon="mdi:counter",
+                    enabled_default=False,
+                    diagnostic=True,
+                    value_fn=lambda d, idx=idx: bool(d.get(f"counter_{idx}_enabled")),
+                ),
+            )
+        )
+
+    if coordinator.installed_wireless_sensors:
         entities.extend(
             [
                 NeptunSmartBinarySensor(
@@ -115,6 +140,8 @@ async def async_setup_entry(
                         key="battery_drain_wireless_sensors",
                         name="Battery Drain in Wireless Sensors",
                         icon="mdi:battery-alert",
+                        enabled_default=False,
+                        diagnostic=True,
                         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_BATTERY_DRAIN)),
                     ),
                 ),
@@ -125,13 +152,15 @@ async def async_setup_entry(
                         key="lost_connection_wireless_sensors",
                         name="Lost Connection with Wireless Sensors",
                         icon="mdi:signal-off",
+                        enabled_default=False,
+                        diagnostic=True,
                         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_LOST_CONNECTION)),
                     ),
                 ),
             ]
         )
 
-        for idx in range(1, coordinator.wireless_sensors + 1):
+        for idx in coordinator.installed_wireless_sensors:
             entities.extend(
                 [
                     NeptunSmartBinarySensor(
@@ -151,6 +180,8 @@ async def async_setup_entry(
                             key=f"wireless_{idx}_category",
                             name=f"Availability of Category Sensor {idx}",
                             icon="mdi:check-circle",
+                            enabled_default=False,
+                            diagnostic=True,
                             value_fn=lambda d, idx=idx: bool(d.get(f"wireless_{idx}_category")),
                         ),
                     ),
@@ -161,6 +192,8 @@ async def async_setup_entry(
                             key=f"wireless_{idx}_loss",
                             name=f"Sensor Loss Sensor {idx}",
                             icon="mdi:alert-circle",
+                            enabled_default=False,
+                            diagnostic=True,
                             value_fn=lambda d, idx=idx: bool(d.get(f"wireless_{idx}_loss")),
                         ),
                     ),
@@ -183,6 +216,9 @@ class NeptunSmartBinarySensor(NeptunSmartEntity, BinarySensorEntity):
     ) -> None:
         super().__init__(coordinator, entry, description.key, description.name)
         self.entity_description = description
+        self._attr_entity_registry_enabled_default = description.enabled_default
+        if description.diagnostic:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def is_on(self) -> bool:

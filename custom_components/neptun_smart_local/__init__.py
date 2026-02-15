@@ -14,12 +14,10 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    CONF_ENABLE_WIRELESS,
     CONF_LEAK_LINES,
     CONF_SLAVE,
     CONF_WIRELESS_SENSORS,
     COORDINATOR,
-    DEFAULT_ENABLE_WIRELESS,
     DEFAULT_LEAK_LINES,
     DEFAULT_NAME,
     DEFAULT_PORT,
@@ -46,7 +44,6 @@ NEPTUN_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
             vol.Coerce(int), vol.Range(min=5, max=3600)
         ),
-        vol.Optional(CONF_ENABLE_WIRELESS, default=DEFAULT_ENABLE_WIRELESS): cv.boolean,
         vol.Optional(CONF_WIRELESS_SENSORS, default=DEFAULT_WIRELESS_SENSORS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=5)
         ),
@@ -80,9 +77,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         normalized_cfg = {
             **cfg,
             CONF_SLAVE: DEFAULT_SLAVE,
-            CONF_ENABLE_WIRELESS: cfg.get(
-                CONF_ENABLE_WIRELESS, DEFAULT_ENABLE_WIRELESS
-            ),
             CONF_WIRELESS_SENSORS: cfg.get(
                 CONF_WIRELESS_SENSORS, DEFAULT_WIRELESS_SENSORS
             ),
@@ -108,6 +102,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Neptun Smart from a config entry."""
+    host = entry.options.get(CONF_HOST, entry.data[CONF_HOST])
+    port = entry.options.get(CONF_PORT, entry.data.get(CONF_PORT, DEFAULT_PORT))
+    timeout = entry.options.get(CONF_TIMEOUT, entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT))
     scan_interval = entry.options.get(
         CONF_SCAN_INTERVAL,
         entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -116,23 +113,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = NeptunSmartCoordinator(
         hass=hass,
         name=entry.title,
-        host=entry.data[CONF_HOST],
-        port=entry.data.get(CONF_PORT, DEFAULT_PORT),
+        host=host,
+        port=port,
         slave=entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
-        timeout=entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+        timeout=timeout,
         update_interval=timedelta(seconds=scan_interval),
-        enable_wireless=entry.options.get(
-            CONF_ENABLE_WIRELESS,
-            entry.data.get(CONF_ENABLE_WIRELESS, DEFAULT_ENABLE_WIRELESS),
-        ),
-        wireless_sensors=entry.options.get(
-            CONF_WIRELESS_SENSORS,
-            entry.data.get(CONF_WIRELESS_SENSORS, DEFAULT_WIRELESS_SENSORS),
-        ),
-        leak_lines=entry.options.get(
-            CONF_LEAK_LINES,
-            entry.data.get(CONF_LEAK_LINES, DEFAULT_LEAK_LINES),
-        ),
     )
     await coordinator.async_config_entry_first_refresh()
 

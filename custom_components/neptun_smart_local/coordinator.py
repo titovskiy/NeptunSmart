@@ -14,13 +14,12 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     BIT_DUAL_ZONE_MODE,
-    DEFAULT_ENABLE_WIRELESS,
     DEFAULT_SCAN_INTERVAL,
-    DEFAULT_LEAK_LINES,
     DEFAULT_TIMEOUT,
-    DEFAULT_WIRELESS_SENSORS,
     MASK_ZONE_BOTH,
     REG_ALARM_MODE,
+    REG_COUNTER_SETTINGS_COUNT,
+    REG_COUNTER_SETTINGS_START,
     REG_LEAK_SENSOR_RAW,
     REG_WATER_COUNTERS_REG_COUNT,
     REG_WATER_COUNTERS_START,
@@ -43,9 +42,6 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         slave: int,
         timeout: int = DEFAULT_TIMEOUT,
         update_interval: timedelta | None = None,
-        enable_wireless: bool = DEFAULT_ENABLE_WIRELESS,
-        wireless_sensors: int = DEFAULT_WIRELESS_SENSORS,
-        leak_lines: int = DEFAULT_LEAK_LINES,
     ) -> None:
         super().__init__(
             hass,
@@ -57,13 +53,37 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.port = port
         self.slave = slave
         self.timeout = timeout
-        self.enable_wireless = enable_wireless
-        self.wireless_sensors = wireless_sensors
-        self.leak_lines = leak_lines
         self.unique_prefix = f"{host}_{port}_{slave}".replace(".", "_")
 
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
         self._lock = None
+
+    @property
+    def installed_counters(self) -> list[int]:
+        """Return detected counter indexes based on counter settings."""
+        if not self.data:
+            return list(range(1, 9))
+        return [
+            idx
+            for idx in range(1, 9)
+            if bool(self.data.get(f"counter_{idx}_enabled"))
+        ]
+
+    @property
+    def installed_wireless_sensors(self) -> list[int]:
+        """Return detected wireless sensor indexes."""
+        if not self.data:
+            return []
+        count = max(0, min(50, int(self.data.get("wireless_sensor_count", 0))))
+        return list(range(1, count + 1))
+
+    @property
+    def detected_leak_lines(self) -> list[int]:
+        """Return detected leak line indexes."""
+        if not self.data:
+            return [1]
+        count = max(1, min(4, int(self.data.get("detected_leak_lines", 1))))
+        return list(range(1, count + 1))
 
     async def async_test_connection(self) -> bool:
         """Check whether connection and basic read works."""
@@ -150,6 +170,21 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"Modbus write error at address {address} (value={value}): {response}"
             )
 
+    async def _write_registers(self, address: int, values: list[int]) -> None:
+        """Write multiple holding registers."""
+        await self._ensure_connected()
+        response = await self._call_with_slave(
+            self._client.write_registers,
+            address,
+            values,
+            address=address,
+            values=values,
+        )
+        if response.isError():
+            raise UpdateFailed(
+                f"Modbus write error at address {address} (values={values}): {response}"
+            )
+
     async def async_write_alarm_mode(self, transform: Callable[[int], int]) -> None:
         """Apply transformation to alarm/mode register value and persist it."""
         from asyncio import Lock
@@ -170,6 +205,56 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         await self.async_request_refresh()
 
+    async def async_write_counter_step(self, counter_index: int, step_value: int) -> None:
+        """Write counting step for counter module (registers 123..130, bits 8..15)."""
+        from asyncio import Lock
+
+        if self._lock is None:
+            self._lock = Lock()
+
+        if not 1 <= counter_index <= 8:
+            raise UpdateFailed(f"Invalid counter index: {counter_index}")
+
+        step_value = max(1, min(255, int(step_value)))
+        address = REG_COUNTER_SETTINGS_START + (counter_index - 1)
+        data_key = f"counter_{counter_index}_cfg_raw"
+
+        async with self._lock:
+            current = self.data.get(data_key) if self.data else None
+            if current is None:
+                current = (await self._read_holding(address, 1))[0]
+
+            new_value = (int(current) & 0x00FF) | ((step_value & 0xFF) << 8)
+            if new_value == current:
+                return
+
+            await self._write_register(address, new_value)
+
+        await self.async_request_refresh()
+
+    async def async_write_counter_calibration(
+        self, counter_index: int, value_m3: float
+    ) -> None:
+        """Set current counter value for calibration."""
+        from asyncio import Lock
+
+        if self._lock is None:
+            self._lock = Lock()
+
+        if not 1 <= counter_index <= 8:
+            raise UpdateFailed(f"Invalid counter index: {counter_index}")
+
+        scaled = max(0, int(round(float(value_m3) * 1000)))
+        scaled = min(scaled, 0x7FFFFFFF)
+        hi = (scaled >> 16) & 0xFFFF
+        lo = scaled & 0xFFFF
+        address = REG_WATER_COUNTERS_START + (counter_index - 1) * 2
+
+        async with self._lock:
+            await self._write_registers(address, [hi, lo])
+
+        await self.async_request_refresh()
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch all required registers from controller."""
         from asyncio import Lock
@@ -181,29 +266,53 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 reg0_to_6 = await self._read_holding(REG_ALARM_MODE, 7)
                 wireless: list[int] = []
-                if self.enable_wireless:
+                if reg0_to_6[REG_WIRELESS_SENSOR_COUNT] > 0:
+                    wireless_count = max(0, min(50, reg0_to_6[REG_WIRELESS_SENSOR_COUNT]))
                     wireless = await self._read_holding(
-                        REG_WIRELESS_SENSORS_START, self.wireless_sensors
+                        REG_WIRELESS_SENSORS_START, wireless_count
                     )
                 water_regs = await self._read_holding(
                     REG_WATER_COUNTERS_START, REG_WATER_COUNTERS_REG_COUNT
+                )
+                counter_settings = await self._read_holding(
+                    REG_COUNTER_SETTINGS_START, REG_COUNTER_SETTINGS_COUNT
                 )
             except Exception as err:  # pylint: disable=broad-except
                 raise UpdateFailed(str(err)) from err
 
         alarm_mode = reg0_to_6[0]
+        line_cfg_1_2 = reg0_to_6[1]
+        line_cfg_3_4 = reg0_to_6[2]
         leak_sensor_raw = reg0_to_6[REG_LEAK_SENSOR_RAW]
         wireless_count = reg0_to_6[REG_WIRELESS_SENSOR_COUNT]
+        line_types = [
+            (line_cfg_1_2 >> 10) & 0x3,
+            (line_cfg_1_2 >> 2) & 0x3,
+            (line_cfg_3_4 >> 10) & 0x3,
+            (line_cfg_3_4 >> 2) & 0x3,
+        ]
+        line_groups = [
+            (line_cfg_1_2 >> 8) & 0x3,
+            line_cfg_1_2 & 0x3,
+            (line_cfg_3_4 >> 8) & 0x3,
+            line_cfg_3_4 & 0x3,
+        ]
+        detected_leak = 1
+        for idx in range(1, 5):
+            leak_active = bool(leak_sensor_raw & (1 << (idx - 1)))
+            cfg_active = line_types[idx - 1] != 0 or line_groups[idx - 1] != 0
+            if leak_active or cfg_active:
+                detected_leak = idx
 
         data: dict[str, Any] = {
             "alarm_mode_raw": alarm_mode,
             "leak_sensor_raw": leak_sensor_raw,
             "wireless_sensor_count": wireless_count,
+            "detected_leak_lines": detected_leak,
             "dual_zone_mode": bool(alarm_mode & BIT_DUAL_ZONE_MODE),
-            "wireless_enabled": self.enable_wireless,
         }
 
-        if self.enable_wireless:
+        if wireless_count > 0:
             for idx, value in enumerate(wireless, start=1):
                 data[f"wireless_{idx}_raw"] = value
                 data[f"wireless_{idx}_alarm"] = bool(value & (1 << 0))
@@ -222,6 +331,16 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             slot = ((counter_idx - 1) // 2) + 1
             port = 1 if counter_idx % 2 else 2
             data[f"water_counter_s{slot}_p{port}"] = round(value * 0.001, 3)
+
+        for idx, value in enumerate(counter_settings, start=1):
+            data[f"counter_{idx}_cfg_raw"] = value
+            data[f"counter_{idx}_step"] = (value >> 8) & 0xFF
+            data[f"counter_{idx}_enabled"] = bool(value & 0x1)
+            data[f"counter_{idx}_status_code"] = value & 0xF
+
+        data["detected_counters"] = sum(
+            1 for idx in range(1, 9) if data.get(f"counter_{idx}_enabled")
+        )
 
         return data
 

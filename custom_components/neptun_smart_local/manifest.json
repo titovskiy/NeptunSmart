@@ -1,5 +1,5 @@
 {
-  "domain": "neptun_smart",
+  "domain": "neptun_smart_local",
   "name": "Neptun Smart",
   "codeowners": [],
   "config_flow": true,

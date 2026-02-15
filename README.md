@@ -14,9 +14,9 @@
 
 ## Установка
 
-Скопируйте папку `custom_components/neptun_smart` в ваш Home Assistant:
+Скопируйте папку `custom_components/neptun_smart_local` в ваш Home Assistant:
 
-`<config>/custom_components/neptun_smart`
+`<config>/custom_components/neptun_smart_local`
 
 Перезапустите Home Assistant.
 
@@ -29,7 +29,7 @@
 ## Настройка через YAML (импорт)
 
 ```yaml
-neptun_smart:
+neptun_smart_local:
   - name: Neptun Smart
     host: 192.168.1.198
     port: 503

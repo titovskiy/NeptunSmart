@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-DOMAIN = "neptun_smart"
+DOMAIN = "neptun_smart_local"
 
 CONF_SLAVE = "slave"
-CONF_ENABLE_WIRELESS = "enable_wireless"
 CONF_WIRELESS_SENSORS = "wireless_sensors"
 CONF_LEAK_LINES = "leak_lines"
 
@@ -16,11 +15,10 @@ DEFAULT_PORT = 503
 DEFAULT_SLAVE = 240
 DEFAULT_TIMEOUT = 3
 DEFAULT_SCAN_INTERVAL = 10
-DEFAULT_ENABLE_WIRELESS = False
 DEFAULT_WIRELESS_SENSORS = 1
 DEFAULT_LEAK_LINES = 1
 
-PLATFORMS = ["sensor", "binary_sensor", "switch"]
+PLATFORMS = ["sensor", "binary_sensor", "switch", "number"]
 
 COORDINATOR = "coordinator"
 
@@ -33,6 +31,8 @@ REG_WIRELESS_SENSORS_START = 57
 REG_WIRELESS_SENSORS_COUNT = 5
 REG_WATER_COUNTERS_START = 107
 REG_WATER_COUNTERS_REG_COUNT = 16
+REG_COUNTER_SETTINGS_START = 123
+REG_COUNTER_SETTINGS_COUNT = 8
 
 BIT_FLOOR_WASHING_MODE = 1 << 0
 BIT_ALARM_ZONE_1 = 1 << 1

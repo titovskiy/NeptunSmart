@@ -105,17 +105,16 @@ async def async_setup_entry(
     """Set up Neptun Smart switches from config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     descriptions = list(BASE_DESCRIPTIONS)
-    if coordinator.enable_wireless:
-        descriptions.append(
-            NeptunSwitchDescription(
-                key="procedure_for_connecting_wireless_devices_switch",
-                name="Procedure for Connecting Wireless Devices",
-                icon="mdi:wifi",
-                is_on_fn=lambda value: bool(value & BIT_WIRELESS_PAIRING),
-                turn_on_fn=lambda value: set_bits(value, BIT_WIRELESS_PAIRING),
-                turn_off_fn=lambda value: clear_bits(value, BIT_WIRELESS_PAIRING),
-            )
+    descriptions.append(
+        NeptunSwitchDescription(
+            key="add_new_sensor_switch",
+            name="Add New Sensor",
+            icon="mdi:wifi-plus",
+            is_on_fn=lambda value: bool(value & BIT_WIRELESS_PAIRING),
+            turn_on_fn=lambda value: set_bits(value, BIT_WIRELESS_PAIRING),
+            turn_off_fn=lambda value: clear_bits(value, BIT_WIRELESS_PAIRING),
         )
+    )
     async_add_entities(
         [NeptunSmartSwitch(coordinator, entry, description) for description in descriptions]
     )

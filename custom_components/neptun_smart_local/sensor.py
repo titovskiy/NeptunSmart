@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfVolume
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import COORDINATOR, DOMAIN
@@ -25,6 +26,8 @@ class NeptunSensorDescription(SensorEntityDescription):
     """Describe Neptun Smart sensor."""
 
     value_fn: Callable[[dict[str, Any]], Any]
+    enabled_default: bool = True
+    diagnostic: bool = False
 
 
 BASE_SENSORS: tuple[NeptunSensorDescription, ...] = (
@@ -32,6 +35,8 @@ BASE_SENSORS: tuple[NeptunSensorDescription, ...] = (
         key="alarm_mode_raw",
         name="Alarm and Mode Raw",
         icon="mdi:code-braces",
+        enabled_default=False,
+        diagnostic=True,
         value_fn=lambda d: d.get("alarm_mode_raw"),
     ),
     NeptunSensorDescription(
@@ -39,6 +44,15 @@ BASE_SENSORS: tuple[NeptunSensorDescription, ...] = (
         name="Leak Sensor Raw",
         icon="mdi:water-alert",
         value_fn=lambda d: d.get("leak_sensor_raw"),
+    ),
+    NeptunSensorDescription(
+        key="detected_counters",
+        name="Detected Counters",
+        icon="mdi:counter",
+        native_unit_of_measurement="pcs",
+        enabled_default=False,
+        diagnostic=True,
+        value_fn=lambda d: d.get("detected_counters"),
     ),
 )
 
@@ -53,7 +67,7 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = [NeptunSmartSensor(coordinator, entry, desc) for desc in BASE_SENSORS]
 
-    if coordinator.enable_wireless:
+    if coordinator.installed_wireless_sensors:
         entities.append(
             NeptunSmartSensor(
                 coordinator,
@@ -63,12 +77,14 @@ async def async_setup_entry(
                     name="Connected Wireless Sensors",
                     icon="mdi:wifi",
                     native_unit_of_measurement="pcs",
+                    enabled_default=False,
+                    diagnostic=True,
                     value_fn=lambda d: d.get("wireless_sensor_count"),
                 ),
             )
         )
 
-        for idx in range(1, coordinator.wireless_sensors + 1):
+        for idx in coordinator.installed_wireless_sensors:
             entities.append(
                 NeptunSmartSensor(
                     coordinator,
@@ -77,6 +93,8 @@ async def async_setup_entry(
                         key=f"wireless_{idx}_raw",
                         name=f"Wireless Sensor {idx} Raw",
                         icon="mdi:chip",
+                        enabled_default=False,
+                        diagnostic=True,
                         value_fn=lambda d, idx=idx: d.get(f"wireless_{idx}_raw"),
                     ),
                 )
@@ -91,6 +109,8 @@ async def async_setup_entry(
                         icon="mdi:battery",
                         device_class=SensorDeviceClass.BATTERY,
                         native_unit_of_measurement=PERCENTAGE,
+                        enabled_default=False,
+                        diagnostic=True,
                         value_fn=lambda d, idx=idx: d.get(f"wireless_{idx}_battery"),
                     ),
                 )
@@ -104,30 +124,49 @@ async def async_setup_entry(
                         name=f"Sensor Signal Level {idx}",
                         icon="mdi:signal",
                         native_unit_of_measurement=PERCENTAGE,
+                        enabled_default=False,
+                        diagnostic=True,
                         value_fn=lambda d, idx=idx: d.get(f"wireless_{idx}_signal"),
                     ),
                 )
             )
 
-    for slot in range(1, 5):
-        for port in range(1, 3):
-            key = f"water_counter_s{slot}_p{port}"
-            entities.append(
-                NeptunSmartSensor(
-                    coordinator,
-                    entry,
-                    NeptunSensorDescription(
-                        key=key,
-                        name=f"Water counter S{slot} P{port}",
-                        icon="mdi:water",
-                        device_class=SensorDeviceClass.WATER,
-                        state_class=SensorStateClass.TOTAL_INCREASING,
-                        native_unit_of_measurement=UnitOfVolume.CUBIC_METERS,
-                        suggested_display_precision=3,
-                        value_fn=lambda d, key=key: d.get(key),
-                    ),
-                )
+    for counter_idx in coordinator.installed_counters:
+        slot = ((counter_idx - 1) // 2) + 1
+        port = 1 if counter_idx % 2 else 2
+        key = f"water_counter_s{slot}_p{port}"
+        entities.append(
+            NeptunSmartSensor(
+                coordinator,
+                entry,
+                NeptunSensorDescription(
+                    key=key,
+                    name=f"Water counter S{slot} P{port}",
+                    icon="mdi:water",
+                    device_class=SensorDeviceClass.WATER,
+                    state_class=SensorStateClass.TOTAL_INCREASING,
+                    native_unit_of_measurement=UnitOfVolume.CUBIC_METERS,
+                    suggested_display_precision=3,
+                    value_fn=lambda d, key=key: d.get(key),
+                ),
             )
+        )
+
+    for idx in coordinator.installed_counters:
+        entities.append(
+            NeptunSmartSensor(
+                coordinator,
+                entry,
+                NeptunSensorDescription(
+                    key=f"counter_{idx}_status_code",
+                    name=f"Counter {idx} Status Code",
+                    icon="mdi:list-status",
+                    enabled_default=False,
+                    diagnostic=True,
+                    value_fn=lambda d, idx=idx: d.get(f"counter_{idx}_status_code"),
+                ),
+            )
+        )
 
     async_add_entities(entities)
 
@@ -145,6 +184,9 @@ class NeptunSmartSensor(NeptunSmartEntity, SensorEntity):
     ) -> None:
         super().__init__(coordinator, entry, description.key, description.name)
         self.entity_description = description
+        self._attr_entity_registry_enabled_default = description.enabled_default
+        if description.diagnostic:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> Any:

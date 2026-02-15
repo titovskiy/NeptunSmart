@@ -9,10 +9,7 @@
           "host": "Host",
           "port": "Port",
           "timeout": "Timeout (seconds)",
-          "scan_interval": "Scan interval (seconds)",
-          "enable_wireless": "Enable wireless sensors",
-          "wireless_sensors": "Wireless sensors (1-5)",
-          "leak_lines": "Leak lines (1-4)"
+          "scan_interval": "Scan interval (seconds)"
         }
       }
     },
@@ -29,10 +26,10 @@
       "init": {
         "title": "Neptun Smart options",
         "data": {
-          "scan_interval": "Scan interval (seconds)",
-          "enable_wireless": "Enable wireless sensors",
-          "wireless_sensors": "Wireless sensors (1-5)",
-          "leak_lines": "Leak lines (1-4)"
+          "host": "Host",
+          "port": "Port",
+          "timeout": "Timeout (seconds)",
+          "scan_interval": "Scan interval (seconds)"
         }
       }
     }
