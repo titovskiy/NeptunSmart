@@ -20,9 +20,14 @@ from .const import (
     REG_ALARM_MODE,
     REG_COUNTER_SETTINGS_COUNT,
     REG_COUNTER_SETTINGS_START,
+    REG_LINE_CFG_1_2,
+    REG_LINE_CFG_3_4,
     REG_LEAK_SENSOR_RAW,
+    REG_MODBUS_CFG,
+    REG_RELAY_CFG,
     REG_WATER_COUNTERS_REG_COUNT,
     REG_WATER_COUNTERS_START,
+    REG_WIRELESS_PARAMS_START,
     REG_WIRELESS_SENSOR_COUNT,
     REG_WIRELESS_SENSORS_START,
 )
@@ -187,21 +192,34 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_write_alarm_mode(self, transform: Callable[[int], int]) -> None:
         """Apply transformation to alarm/mode register value and persist it."""
+        await self.async_write_register_transform(
+            address=REG_ALARM_MODE,
+            data_key="alarm_mode_raw",
+            transform=transform,
+        )
+
+    async def async_write_register_transform(
+        self,
+        address: int,
+        data_key: str | None,
+        transform: Callable[[int], int],
+    ) -> None:
+        """Apply transformation to a register and write it back."""
         from asyncio import Lock
 
         if self._lock is None:
             self._lock = Lock()
 
         async with self._lock:
-            current = self.data.get("alarm_mode_raw") if self.data else None
+            current = self.data.get(data_key) if (self.data and data_key) else None
             if current is None:
-                current = (await self._read_holding(REG_ALARM_MODE, 1))[0]
+                current = (await self._read_holding(address, 1))[0]
 
             new_value = max(0, min(0xFFFF, int(transform(int(current)))))
             if new_value == current:
                 return
 
-            await self._write_register(REG_ALARM_MODE, new_value)
+            await self._write_register(address, new_value)
 
         await self.async_request_refresh()
 
@@ -270,8 +288,12 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 reg0_to_6 = await self._read_holding(REG_ALARM_MODE, 7)
                 wireless: list[int] = []
+                wireless_params: list[int] = []
                 if reg0_to_6[REG_WIRELESS_SENSOR_COUNT] > 0:
                     wireless_count = max(0, min(50, reg0_to_6[REG_WIRELESS_SENSOR_COUNT]))
+                    wireless_params = await self._read_holding(
+                        REG_WIRELESS_PARAMS_START, wireless_count
+                    )
                     wireless = await self._read_holding(
                         REG_WIRELESS_SENSORS_START, wireless_count
                     )
@@ -285,9 +307,11 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise UpdateFailed(str(err)) from err
 
         alarm_mode = reg0_to_6[0]
-        line_cfg_1_2 = reg0_to_6[1]
-        line_cfg_3_4 = reg0_to_6[2]
+        line_cfg_1_2 = reg0_to_6[REG_LINE_CFG_1_2]
+        line_cfg_3_4 = reg0_to_6[REG_LINE_CFG_3_4]
         leak_sensor_raw = reg0_to_6[REG_LEAK_SENSOR_RAW]
+        relay_cfg = reg0_to_6[REG_RELAY_CFG]
+        modbus_cfg = reg0_to_6[REG_MODBUS_CFG]
         wireless_count = reg0_to_6[REG_WIRELESS_SENSOR_COUNT]
         line_types = [
             (line_cfg_1_2 >> 10) & 0x3,
@@ -310,13 +334,27 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         data: dict[str, Any] = {
             "alarm_mode_raw": alarm_mode,
+            "line_cfg_1_2_raw": line_cfg_1_2,
+            "line_cfg_3_4_raw": line_cfg_3_4,
             "leak_sensor_raw": leak_sensor_raw,
             "wireless_sensor_count": wireless_count,
             "detected_leak_lines": detected_leak,
             "dual_zone_mode": bool(alarm_mode & BIT_DUAL_ZONE_MODE),
+            "relay_cfg_raw": relay_cfg,
+            "modbus_cfg_raw": modbus_cfg,
+            "modbus_address": (modbus_cfg >> 8) & 0xFF,
+            "modbus_baud_code": modbus_cfg & 0xFF,
+            "relay_alarm_group": relay_cfg & 0x3,
+            "relay_close_group": (relay_cfg >> 2) & 0x3,
         }
 
+        _decode_line_config(data, line_cfg_1_2, 1, 2)
+        _decode_line_config(data, line_cfg_3_4, 3, 4)
+
         if wireless_count > 0:
+            for idx, value in enumerate(wireless_params, start=1):
+                data[f"wireless_{idx}_cfg_raw"] = value
+                data[f"wireless_{idx}_group"] = value & 0xFF
             for idx, value in enumerate(wireless, start=1):
                 data[f"wireless_{idx}_raw"] = value
                 data[f"wireless_{idx}_alarm"] = bool(value & (1 << 0))
@@ -349,6 +387,19 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
         return data
+
+
+def _decode_line_config(
+    data: dict[str, Any],
+    value: int,
+    line_a: int,
+    line_b: int,
+) -> None:
+    """Decode line type and group from packed register."""
+    data[f"line_{line_a}_type"] = (value >> 10) & 0x3
+    data[f"line_{line_a}_group"] = (value >> 8) & 0x3
+    data[f"line_{line_b}_type"] = (value >> 2) & 0x3
+    data[f"line_{line_b}_group"] = value & 0x3
 
 
 def set_bits(value: int, mask: int) -> int:

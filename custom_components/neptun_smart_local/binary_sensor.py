@@ -15,6 +15,8 @@ from .const import (
     BIT_ALARM_ZONE_1,
     BIT_ALARM_ZONE_2,
     BIT_BATTERY_DRAIN,
+    BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS,
+    BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS,
     BIT_DUAL_ZONE_MODE,
     BIT_FLOOR_WASHING_MODE,
     BIT_KEYPAD_LOCKS,
@@ -84,6 +86,22 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
         enabled_default=False,
         diagnostic=True,
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_DUAL_ZONE_MODE)),
+    ),
+    NeptunBinarySensorDescription(
+        key="close_group_1_on_sensor_loss",
+        name="Close Group 1 on Sensor Loss",
+        icon="mdi:valve",
+        enabled_default=False,
+        diagnostic=True,
+        value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS)),
+    ),
+    NeptunBinarySensorDescription(
+        key="close_group_2_on_sensor_loss",
+        name="Close Group 2 on Sensor Loss",
+        icon="mdi:valve",
+        enabled_default=False,
+        diagnostic=True,
+        value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS)),
     ),
 )
 

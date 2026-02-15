@@ -11,6 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS,
+    BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS,
     BIT_CLOSE_TAPS_ON_SENSOR_LOST,
     BIT_DUAL_ZONE_MODE,
     BIT_FLOOR_WASHING_MODE,
@@ -94,6 +96,22 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
         turn_on_fn=lambda value: set_bits(value, BIT_CLOSE_TAPS_ON_SENSOR_LOST),
         turn_off_fn=lambda value: clear_bits(value, BIT_CLOSE_TAPS_ON_SENSOR_LOST),
     ),
+    NeptunSwitchDescription(
+        key="close_group_1_on_sensor_loss_switch",
+        name="Close Group 1 on Sensor Loss",
+        icon="mdi:valve",
+        is_on_fn=lambda value: bool(value & BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS),
+        turn_on_fn=lambda value: set_bits(value, BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS),
+        turn_off_fn=lambda value: clear_bits(value, BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS),
+    ),
+    NeptunSwitchDescription(
+        key="close_group_2_on_sensor_loss_switch",
+        name="Close Group 2 on Sensor Loss",
+        icon="mdi:valve",
+        is_on_fn=lambda value: bool(value & BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS),
+        turn_on_fn=lambda value: set_bits(value, BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS),
+        turn_off_fn=lambda value: clear_bits(value, BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS),
+    ),
 )
 
 
@@ -115,6 +133,19 @@ async def async_setup_entry(
             turn_off_fn=lambda value: clear_bits(value, BIT_WIRELESS_PAIRING),
         )
     )
+    for idx in coordinator.installed_counters:
+        descriptions.append(
+            NeptunSwitchDescription(
+                key=f"counter_{idx}_enabled_switch",
+                name=f"Counter {idx} Enabled",
+                icon="mdi:counter",
+                is_on_fn=lambda value, idx=idx: bool(
+                    coordinator.data.get(f"counter_{idx}_enabled")
+                ),
+                turn_on_fn=lambda value: value,
+                turn_off_fn=lambda value: value,
+            )
+        )
     async_add_entities(
         [NeptunSmartSwitch(coordinator, entry, description) for description in descriptions]
     )
@@ -156,8 +187,28 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn switch on."""
+        if self.entity_description.key.endswith("_enabled_switch"):
+            idx = int(self.entity_description.key.split("_")[1])
+            address = 123 + (idx - 1)
+            data_key = f"counter_{idx}_cfg_raw"
+            await self.coordinator.async_write_register_transform(
+                address=address,
+                data_key=data_key,
+                transform=lambda current: int(current) | 0x1,
+            )
+            return
         await self.coordinator.async_write_alarm_mode(self.entity_description.turn_on_fn)
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn switch off."""
+        if self.entity_description.key.endswith("_enabled_switch"):
+            idx = int(self.entity_description.key.split("_")[1])
+            address = 123 + (idx - 1)
+            data_key = f"counter_{idx}_cfg_raw"
+            await self.coordinator.async_write_register_transform(
+                address=address,
+                data_key=data_key,
+                transform=lambda current: int(current) & ~0x1,
+            )
+            return
         await self.coordinator.async_write_alarm_mode(self.entity_description.turn_off_fn)

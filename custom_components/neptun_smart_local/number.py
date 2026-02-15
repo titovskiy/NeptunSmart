@@ -28,6 +28,7 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     entities: list[NumberEntity] = []
+    entities.append(NeptunModbusAddressNumber(coordinator, entry))
     for idx in coordinator.installed_counters:
         entities.append(NeptunCounterCalibrationNumber(coordinator, entry, idx))
 
@@ -67,4 +68,39 @@ class NeptunCounterCalibrationNumber(NeptunSmartEntity, NumberEntity):
         await self.coordinator.async_write_counter_calibration(
             self._counter_index,
             float(value),
+        )
+
+
+class NeptunModbusAddressNumber(NeptunSmartEntity, NumberEntity):
+    """Modbus address in register 5 (bits 8..15)."""
+
+    _attr_icon = "mdi:identifier"
+    _attr_mode = NumberMode.BOX
+    _attr_native_min_value = 0
+    _attr_native_max_value = 247
+    _attr_native_step = 1
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator, entry: ConfigEntry) -> None:
+        super().__init__(
+            coordinator,
+            entry,
+            "modbus_address",
+            "Modbus Address",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return current module modbus address."""
+        value = self.coordinator.data.get("modbus_address")
+        return float(value) if value is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set module modbus address."""
+        address = max(0, min(247, int(round(value))))
+        await self.coordinator.async_write_register_transform(
+            address=5,
+            data_key="modbus_cfg_raw",
+            transform=lambda current: (int(current) & 0x00FF) | ((address & 0xFF) << 8),
         )
