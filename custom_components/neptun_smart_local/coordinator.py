@@ -215,7 +215,11 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not 1 <= counter_index <= 8:
             raise UpdateFailed(f"Invalid counter index: {counter_index}")
 
-        step_value = max(1, min(255, int(step_value)))
+        step_value = int(step_value)
+        if step_value not in (1, 10, 100):
+            raise UpdateFailed(
+                f"Invalid counter step {step_value}; allowed values are 1, 10, 100"
+            )
         address = REG_COUNTER_SETTINGS_START + (counter_index - 1)
         data_key = f"counter_{counter_index}_cfg_raw"
 
@@ -335,6 +339,8 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for idx, value in enumerate(counter_settings, start=1):
             data[f"counter_{idx}_cfg_raw"] = value
             data[f"counter_{idx}_step"] = (value >> 8) & 0xFF
+            data[f"counter_{idx}_namur_error"] = (value >> 2) & 0x3
+            data[f"counter_{idx}_connection_type"] = (value >> 1) & 0x1
             data[f"counter_{idx}_enabled"] = bool(value & 0x1)
             data[f"counter_{idx}_status_code"] = value & 0xF
 

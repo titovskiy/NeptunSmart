@@ -18,7 +18,7 @@ DEFAULT_SCAN_INTERVAL = 10
 DEFAULT_WIRELESS_SENSORS = 1
 DEFAULT_LEAK_LINES = 1
 
-PLATFORMS = ["sensor", "binary_sensor", "switch", "number"]
+PLATFORMS = ["sensor", "binary_sensor", "switch", "number", "select"]
 
 COORDINATOR = "coordinator"
 

@@ -167,6 +167,34 @@ async def async_setup_entry(
                 ),
             )
         )
+        entities.append(
+            NeptunSmartSensor(
+                coordinator,
+                entry,
+                NeptunSensorDescription(
+                    key=f"counter_{idx}_connection_type",
+                    name=f"Counter {idx} Connection Type",
+                    icon="mdi:connection",
+                    enabled_default=False,
+                    diagnostic=True,
+                    value_fn=lambda d, idx=idx: d.get(f"counter_{idx}_connection_type"),
+                ),
+            )
+        )
+        entities.append(
+            NeptunSmartSensor(
+                coordinator,
+                entry,
+                NeptunSensorDescription(
+                    key=f"counter_{idx}_namur_error",
+                    name=f"Counter {idx} Namur Error",
+                    icon="mdi:alert-circle",
+                    enabled_default=False,
+                    diagnostic=True,
+                    value_fn=lambda d, idx=idx: d.get(f"counter_{idx}_namur_error"),
+                ),
+            )
+        )
 
     async_add_entities(entities)
 

@@ -29,43 +29,9 @@ async def async_setup_entry(
 
     entities: list[NumberEntity] = []
     for idx in coordinator.installed_counters:
-        entities.append(NeptunCounterStepNumber(coordinator, entry, idx))
         entities.append(NeptunCounterCalibrationNumber(coordinator, entry, idx))
 
     async_add_entities(entities)
-
-
-class NeptunCounterStepNumber(NeptunSmartEntity, NumberEntity):
-    """Counter module counting step."""
-
-    _attr_icon = "mdi:counter"
-    _attr_mode = NumberMode.BOX
-    _attr_native_min_value = 1
-    _attr_native_max_value = 255
-    _attr_native_step = 1
-    _attr_entity_category = EntityCategory.CONFIG
-
-    def __init__(self, coordinator, entry: ConfigEntry, counter_index: int) -> None:
-        super().__init__(
-            coordinator,
-            entry,
-            f"counter_{counter_index}_step",
-            f"Counter {counter_index} Step",
-        )
-        self._counter_index = counter_index
-
-    @property
-    def native_value(self) -> float | None:
-        """Return counting step."""
-        value = self.coordinator.data.get(f"counter_{self._counter_index}_step")
-        return float(value) if value is not None else None
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Set counting step."""
-        await self.coordinator.async_write_counter_step(
-            self._counter_index,
-            int(round(value)),
-        )
 
 
 class NeptunCounterCalibrationNumber(NeptunSmartEntity, NumberEntity):
