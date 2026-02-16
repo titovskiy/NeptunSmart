@@ -273,7 +273,9 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         address = REG_WATER_COUNTERS_START + (counter_index - 1) * 2
 
         async with self._lock:
-            await self._write_registers(address, [hi, lo])
+            # Neptun Smart expects single-register writes (FC06) for these addresses.
+            await self._write_register(address, hi)
+            await self._write_register(address + 1, lo)
 
         await self.async_request_refresh()
 
