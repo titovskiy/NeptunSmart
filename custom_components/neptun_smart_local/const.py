@@ -9,6 +9,7 @@ DOMAIN = "neptun_smart_local"
 CONF_SLAVE = "slave"
 CONF_WIRELESS_SENSORS = "wireless_sensors"
 CONF_LEAK_LINES = "leak_lines"
+CONF_IGNORE_ZERO_COUNTER_VALUES = "ignore_zero_counter_values"
 
 DEFAULT_NAME = "Neptun Smart"
 DEFAULT_PORT = 503
@@ -17,6 +18,7 @@ DEFAULT_TIMEOUT = 3
 DEFAULT_SCAN_INTERVAL = 10
 DEFAULT_WIRELESS_SENSORS = 1
 DEFAULT_LEAK_LINES = 1
+DEFAULT_IGNORE_ZERO_COUNTER_VALUES = False
 
 PLATFORMS = ["sensor", "binary_sensor", "switch", "number", "select"]
 

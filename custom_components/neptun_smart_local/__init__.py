@@ -14,11 +14,13 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_IGNORE_ZERO_COUNTER_VALUES,
     CONF_LEAK_LINES,
     CONF_SLAVE,
     CONF_WIRELESS_SENSORS,
     COORDINATOR,
     DEFAULT_LEAK_LINES,
+    DEFAULT_IGNORE_ZERO_COUNTER_VALUES,
     DEFAULT_NAME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
@@ -50,6 +52,10 @@ NEPTUN_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(CONF_LEAK_LINES, default=DEFAULT_LEAK_LINES): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=4)
         ),
+        vol.Optional(
+            CONF_IGNORE_ZERO_COUNTER_VALUES,
+            default=DEFAULT_IGNORE_ZERO_COUNTER_VALUES,
+        ): cv.boolean,
     }
 )
 
@@ -81,6 +87,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 CONF_WIRELESS_SENSORS, DEFAULT_WIRELESS_SENSORS
             ),
             CONF_LEAK_LINES: cfg.get(CONF_LEAK_LINES, DEFAULT_LEAK_LINES),
+            CONF_IGNORE_ZERO_COUNTER_VALUES: cfg.get(
+                CONF_IGNORE_ZERO_COUNTER_VALUES,
+                DEFAULT_IGNORE_ZERO_COUNTER_VALUES,
+            ),
         }
         key = (
             normalized_cfg[CONF_HOST],
@@ -118,6 +128,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slave=entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
         timeout=timeout,
         update_interval=timedelta(seconds=scan_interval),
+        ignore_zero_counter_values=entry.options.get(
+            CONF_IGNORE_ZERO_COUNTER_VALUES,
+            entry.data.get(
+                CONF_IGNORE_ZERO_COUNTER_VALUES,
+                DEFAULT_IGNORE_ZERO_COUNTER_VALUES,
+            ),
+        ),
     )
     await coordinator.async_config_entry_first_refresh()
 

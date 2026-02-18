@@ -9,7 +9,8 @@
           "host": "Host",
           "port": "Port",
           "timeout": "Timeout (seconds)",
-          "scan_interval": "Scan interval (seconds)"
+          "scan_interval": "Scan interval (seconds)",
+          "ignore_zero_counter_values": "Ignore zero values for water counters"
         }
       }
     },
@@ -29,7 +30,8 @@
           "host": "Host",
           "port": "Port",
           "timeout": "Timeout (seconds)",
-          "scan_interval": "Scan interval (seconds)"
+          "scan_interval": "Scan interval (seconds)",
+          "ignore_zero_counter_values": "Ignore zero values for water counters"
         }
       }
     }

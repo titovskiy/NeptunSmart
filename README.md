@@ -24,7 +24,7 @@
 
 1. `Settings` -> `Devices & Services` -> `Add Integration`.
 2. Выберите `Neptun Smart`.
-3. Заполните `host`, `port`, `timeout`, `scan_interval`, `enable_wireless`, `wireless_sensors`, `leak_lines`.
+3. Заполните `host`, `port`, `timeout`, `scan_interval` и при необходимости включите `ignore_zero_counter_values` для фильтрации шумовых нулей счетчиков.
 
 ## Настройка через YAML (импорт)
 
@@ -35,6 +35,7 @@ neptun_smart_local:
     port: 503
     timeout: 3
     scan_interval: 10
+    ignore_zero_counter_values: true
     enable_wireless: false
     wireless_sensors: 1
     leak_lines: 1

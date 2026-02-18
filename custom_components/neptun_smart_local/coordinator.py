@@ -47,6 +47,7 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         slave: int,
         timeout: int = DEFAULT_TIMEOUT,
         update_interval: timedelta | None = None,
+        ignore_zero_counter_values: bool = False,
     ) -> None:
         super().__init__(
             hass,
@@ -58,6 +59,7 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.port = port
         self.slave = slave
         self.timeout = timeout
+        self.ignore_zero_counter_values = ignore_zero_counter_values
         self.unique_prefix = f"{host}_{port}_{slave}".replace(".", "_")
 
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
@@ -374,7 +376,18 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             counter_idx = (i // 2) + 1
             slot = ((counter_idx - 1) // 2) + 1
             port = 1 if counter_idx % 2 else 2
-            data[f"water_counter_s{slot}_p{port}"] = round(value * 0.001, 3)
+            key = f"water_counter_s{slot}_p{port}"
+            value_m3 = round(value * 0.001, 3)
+            if (
+                self.ignore_zero_counter_values
+                and value_m3 == 0
+                and self.data
+                and (previous_value := self.data.get(key)) is not None
+                and previous_value > 0
+            ):
+                data[key] = previous_value
+            else:
+                data[key] = value_m3
 
         for idx, value in enumerate(counter_settings, start=1):
             data[f"counter_{idx}_cfg_raw"] = value
