@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.components import persistent_notification
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL, CONF_TIMEOUT
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -83,26 +84,41 @@ class NeptunSmartOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
+        self._warning_notification_id = (
+            f"{DOMAIN}_{config_entry.entry_id}_options_connection_warning"
+        )
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage options."""
-        errors: dict[str, str] = {}
         if user_input is not None:
             normalized = _normalize_input(user_input)
-            ok = await _validate_connection(self.hass, normalized)
-            if not ok:
-                errors["base"] = "cannot_connect"
+            if not await _validate_connection(self.hass, normalized):
+                persistent_notification.async_create(
+                    self.hass,
+                    (
+                        "Neptun Smart options were saved, but the controller is "
+                        f"currently unreachable at {normalized[CONF_HOST]}:"
+                        f"{normalized[CONF_PORT]}. New settings will apply once "
+                        "the connection is restored."
+                    ),
+                    title="Neptun Smart: Connection warning",
+                    notification_id=self._warning_notification_id,
+                )
             else:
-                options = {
-                    CONF_HOST: normalized[CONF_HOST],
-                    CONF_PORT: normalized[CONF_PORT],
-                    CONF_TIMEOUT: normalized[CONF_TIMEOUT],
-                    CONF_SCAN_INTERVAL: normalized[CONF_SCAN_INTERVAL],
-                    CONF_IGNORE_ZERO_COUNTER_VALUES: normalized[
-                        CONF_IGNORE_ZERO_COUNTER_VALUES
-                    ],
-                }
-                return self.async_create_entry(title="", data=options)
+                persistent_notification.async_dismiss(
+                    self.hass,
+                    self._warning_notification_id,
+                )
+            options = {
+                CONF_HOST: normalized[CONF_HOST],
+                CONF_PORT: normalized[CONF_PORT],
+                CONF_TIMEOUT: normalized[CONF_TIMEOUT],
+                CONF_SCAN_INTERVAL: normalized[CONF_SCAN_INTERVAL],
+                CONF_IGNORE_ZERO_COUNTER_VALUES: normalized[
+                    CONF_IGNORE_ZERO_COUNTER_VALUES
+                ],
+            }
+            return self.async_create_entry(title="", data=options)
 
         current_host = str(
             self._config_entry.options.get(
@@ -167,7 +183,6 @@ class NeptunSmartOptionsFlow(config_entries.OptionsFlow):
                     ): bool,
                 }
             ),
-            errors=errors,
         )
 
 
