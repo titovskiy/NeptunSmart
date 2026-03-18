@@ -15,12 +15,14 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import (
     CONF_IGNORE_ZERO_COUNTER_VALUES,
     CONF_SLAVE,
+    CONF_UNAVAILABLE_GRACE_PERIOD,
     DEFAULT_IGNORE_ZERO_COUNTER_VALUES,
     DEFAULT_NAME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
     DEFAULT_TIMEOUT,
+    DEFAULT_UNAVAILABLE_GRACE_PERIOD,
     DOMAIN,
 )
 from .coordinator import NeptunSmartCoordinator
@@ -114,6 +116,7 @@ class NeptunSmartOptionsFlow(config_entries.OptionsFlow):
                 CONF_PORT: normalized[CONF_PORT],
                 CONF_TIMEOUT: normalized[CONF_TIMEOUT],
                 CONF_SCAN_INTERVAL: normalized[CONF_SCAN_INTERVAL],
+                CONF_UNAVAILABLE_GRACE_PERIOD: normalized[CONF_UNAVAILABLE_GRACE_PERIOD],
                 CONF_IGNORE_ZERO_COUNTER_VALUES: normalized[
                     CONF_IGNORE_ZERO_COUNTER_VALUES
                 ],
@@ -153,6 +156,18 @@ class NeptunSmartOptionsFlow(config_entries.OptionsFlow):
             minimum=5,
             maximum=3600,
         )
+        current_unavailable_grace_period = _safe_int(
+            self._config_entry.options.get(
+                CONF_UNAVAILABLE_GRACE_PERIOD,
+                self._config_entry.data.get(
+                    CONF_UNAVAILABLE_GRACE_PERIOD,
+                    DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+                ),
+            ),
+            DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+            minimum=0,
+            maximum=3600,
+        )
         current_ignore_zero_counter_values = bool(
             self._config_entry.options.get(
                 CONF_IGNORE_ZERO_COUNTER_VALUES,
@@ -177,6 +192,10 @@ class NeptunSmartOptionsFlow(config_entries.OptionsFlow):
                         CONF_SCAN_INTERVAL,
                         default=current_scan_interval,
                     ): vol.All(vol.Coerce(int), vol.Range(min=5, max=3600)),
+                    vol.Required(
+                        CONF_UNAVAILABLE_GRACE_PERIOD,
+                        default=current_unavailable_grace_period,
+                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=3600)),
                     vol.Required(
                         CONF_IGNORE_ZERO_COUNTER_VALUES,
                         default=current_ignore_zero_counter_values,
@@ -205,6 +224,13 @@ def _schema(user_input: dict[str, Any] | None) -> vol.Schema:
                 default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
             ): vol.All(vol.Coerce(int), vol.Range(min=5, max=3600)),
             vol.Required(
+                CONF_UNAVAILABLE_GRACE_PERIOD,
+                default=user_input.get(
+                    CONF_UNAVAILABLE_GRACE_PERIOD,
+                    DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=3600)),
+            vol.Required(
                 CONF_IGNORE_ZERO_COUNTER_VALUES,
                 default=user_input.get(
                     CONF_IGNORE_ZERO_COUNTER_VALUES,
@@ -220,6 +246,15 @@ def _normalize_input(data: dict[str, Any]) -> dict[str, Any]:
     return {
         **data,
         CONF_SLAVE: DEFAULT_SLAVE,
+        CONF_UNAVAILABLE_GRACE_PERIOD: _safe_int(
+            data.get(
+                CONF_UNAVAILABLE_GRACE_PERIOD,
+                DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+            ),
+            DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+            minimum=0,
+            maximum=3600,
+        ),
         CONF_IGNORE_ZERO_COUNTER_VALUES: bool(
             data.get(
                 CONF_IGNORE_ZERO_COUNTER_VALUES,
@@ -260,6 +295,7 @@ async def _validate_connection(hass, data: dict[str, Any]) -> bool:
         port=data[CONF_PORT],
         slave=data[CONF_SLAVE],
         timeout=data[CONF_TIMEOUT],
+        unavailable_grace_period=data[CONF_UNAVAILABLE_GRACE_PERIOD],
         ignore_zero_counter_values=data.get(
             CONF_IGNORE_ZERO_COUNTER_VALUES,
             DEFAULT_IGNORE_ZERO_COUNTER_VALUES,

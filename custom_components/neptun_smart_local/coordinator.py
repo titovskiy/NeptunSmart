@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import timedelta
 import logging
+from time import monotonic
 from typing import Any
 
 from pymodbus.client import AsyncModbusTcpClient
@@ -16,6 +17,7 @@ from .const import (
     BIT_DUAL_ZONE_MODE,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIMEOUT,
+    DEFAULT_UNAVAILABLE_GRACE_PERIOD,
     MASK_ZONE_BOTH,
     REG_ALARM_MODE,
     REG_COUNTER_SETTINGS_COUNT,
@@ -46,6 +48,7 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         port: int,
         slave: int,
         timeout: int = DEFAULT_TIMEOUT,
+        unavailable_grace_period: int = DEFAULT_UNAVAILABLE_GRACE_PERIOD,
         update_interval: timedelta | None = None,
         ignore_zero_counter_values: bool = False,
     ) -> None:
@@ -59,8 +62,10 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.port = port
         self.slave = slave
         self.timeout = timeout
+        self.unavailable_grace_period = max(0, int(unavailable_grace_period))
         self.ignore_zero_counter_values = ignore_zero_counter_values
         self.unique_prefix = f"{host}_{port}_{slave}".replace(".", "_")
+        self._last_successful_update_monotonic: float | None = None
 
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
         self._lock = None
@@ -308,6 +313,23 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     REG_COUNTER_SETTINGS_START, REG_COUNTER_SETTINGS_COUNT
                 )
             except Exception as err:  # pylint: disable=broad-except
+                if (
+                    self.unavailable_grace_period > 0
+                    and self.data
+                    and self._last_successful_update_monotonic is not None
+                ):
+                    elapsed = monotonic() - self._last_successful_update_monotonic
+                    if elapsed < self.unavailable_grace_period:
+                        _LOGGER.warning(
+                            (
+                                "Neptun Smart update failed (%s), keeping previous "
+                                "state for %.1f/%.1f seconds before marking unavailable"
+                            ),
+                            err,
+                            elapsed,
+                            float(self.unavailable_grace_period),
+                        )
+                        return self.data
                 raise UpdateFailed(str(err)) from err
 
         alarm_mode = reg0_to_6[0]
@@ -401,6 +423,7 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             1 for idx in range(1, 9) if data.get(f"counter_{idx}_enabled")
         )
 
+        self._last_successful_update_monotonic = monotonic()
         return data
 
 

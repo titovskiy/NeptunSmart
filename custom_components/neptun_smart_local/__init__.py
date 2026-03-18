@@ -17,6 +17,7 @@ from .const import (
     CONF_IGNORE_ZERO_COUNTER_VALUES,
     CONF_LEAK_LINES,
     CONF_SLAVE,
+    CONF_UNAVAILABLE_GRACE_PERIOD,
     CONF_WIRELESS_SENSORS,
     COORDINATOR,
     DEFAULT_LEAK_LINES,
@@ -26,6 +27,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
     DEFAULT_TIMEOUT,
+    DEFAULT_UNAVAILABLE_GRACE_PERIOD,
     DEFAULT_WIRELESS_SENSORS,
     DOMAIN,
     PLATFORMS,
@@ -46,6 +48,10 @@ NEPTUN_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
             vol.Coerce(int), vol.Range(min=5, max=3600)
         ),
+        vol.Optional(
+            CONF_UNAVAILABLE_GRACE_PERIOD,
+            default=DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=3600)),
         vol.Optional(CONF_WIRELESS_SENSORS, default=DEFAULT_WIRELESS_SENSORS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=5)
         ),
@@ -119,6 +125,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_SCAN_INTERVAL,
         entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
     )
+    unavailable_grace_period = entry.options.get(
+        CONF_UNAVAILABLE_GRACE_PERIOD,
+        entry.data.get(
+            CONF_UNAVAILABLE_GRACE_PERIOD,
+            DEFAULT_UNAVAILABLE_GRACE_PERIOD,
+        ),
+    )
 
     coordinator = NeptunSmartCoordinator(
         hass=hass,
@@ -127,6 +140,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         port=port,
         slave=entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
         timeout=timeout,
+        unavailable_grace_period=unavailable_grace_period,
         update_interval=timedelta(seconds=scan_interval),
         ignore_zero_counter_values=entry.options.get(
             CONF_IGNORE_ZERO_COUNTER_VALUES,
