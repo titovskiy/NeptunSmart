@@ -203,6 +203,7 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             address=REG_ALARM_MODE,
             data_key="alarm_mode_raw",
             transform=transform,
+            read_current_from_device=True,
         )
 
     async def async_write_register_transform(
@@ -210,6 +211,7 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         address: int,
         data_key: str | None,
         transform: Callable[[int], int],
+        read_current_from_device: bool = False,
     ) -> None:
         """Apply transformation to a register and write it back."""
         from asyncio import Lock
@@ -218,7 +220,9 @@ class NeptunSmartCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._lock = Lock()
 
         async with self._lock:
-            current = self.data.get(data_key) if (self.data and data_key) else None
+            current: int | None = None
+            if not read_current_from_device and self.data and data_key:
+                current = self.data.get(data_key)
             if current is None:
                 current = (await self._read_holding(address, 1))[0]
 

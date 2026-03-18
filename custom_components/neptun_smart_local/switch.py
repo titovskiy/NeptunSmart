@@ -8,6 +8,7 @@ from typing import Callable
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -187,6 +188,10 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn switch on."""
+        if not self.available:
+            raise HomeAssistantError(
+                f"{self.name} is unavailable, command is blocked"
+            )
         if self.entity_description.key.endswith("_enabled_switch"):
             idx = int(self.entity_description.key.split("_")[1])
             address = 123 + (idx - 1)
@@ -201,6 +206,10 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn switch off."""
+        if not self.available:
+            raise HomeAssistantError(
+                f"{self.name} is unavailable, command is blocked"
+            )
         if self.entity_description.key.endswith("_enabled_switch"):
             idx = int(self.entity_description.key.split("_")[1])
             address = 123 + (idx - 1)
