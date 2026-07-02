@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -33,6 +34,8 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import NeptunSmartCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 NEPTUN_ENTRY_SCHEMA = vol.Schema(
     {
@@ -150,7 +153,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             ),
         ),
     )
-    await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_refresh()
+    if not coordinator.last_update_success:
+        _LOGGER.warning(
+            (
+                "Neptun Smart controller %s:%s is unavailable during setup; "
+                "loading entities as unavailable until the connection is restored"
+            ),
+            host,
+            port,
+        )
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {COORDINATOR: coordinator}
@@ -162,9 +174,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        data: dict[str, Any] = hass.data[DOMAIN].pop(entry.entry_id)
-        coordinator: NeptunSmartCoordinator = data[COORDINATOR]
-        await coordinator.async_close()
+        if data := hass.data.get(DOMAIN, {}).pop(entry.entry_id, None):
+            coordinator: NeptunSmartCoordinator = data[COORDINATOR]
+            await coordinator.async_close()
+        if not hass.data.get(DOMAIN):
+            hass.data.pop(DOMAIN, None)
 
     return unloaded
 

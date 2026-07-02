@@ -241,4 +241,4 @@ class NeptunSmartBinarySensor(NeptunSmartEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         """Return binary sensor state."""
-        return self.entity_description.value_fn(self.coordinator.data)
+        return self.entity_description.value_fn(self.coordinator.data or {})

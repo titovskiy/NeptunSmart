@@ -219,4 +219,4 @@ class NeptunSmartSensor(NeptunSmartEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the sensor state."""
-        return self.entity_description.value_fn(self.coordinator.data)
+        return self.entity_description.value_fn(self.coordinator.data or {})

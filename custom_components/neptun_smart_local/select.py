@@ -203,7 +203,7 @@ class NeptunRegisterSelect(NeptunSmartEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return selected option."""
-        code = self._desc.get_code(self.coordinator.data)
+        code = self._desc.get_code(self.coordinator.data or {})
         return self._desc.options_map.get(code)
 
     async def async_select_option(self, option: str) -> None:

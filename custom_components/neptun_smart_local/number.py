@@ -60,7 +60,7 @@ class NeptunCounterCalibrationNumber(NeptunSmartEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return current counter value."""
-        value = self.coordinator.data.get(self._water_key)
+        value = (self.coordinator.data or {}).get(self._water_key)
         return float(value) if value is not None else None
 
     async def async_set_native_value(self, value: float) -> None:
@@ -93,7 +93,7 @@ class NeptunModbusAddressNumber(NeptunSmartEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return current module modbus address."""
-        value = self.coordinator.data.get("modbus_address")
+        value = (self.coordinator.data or {}).get("modbus_address")
         return float(value) if value is not None else None
 
     async def async_set_native_value(self, value: float) -> None:

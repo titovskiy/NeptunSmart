@@ -141,7 +141,7 @@ async def async_setup_entry(
                 name=f"Counter {idx} Enabled",
                 icon="mdi:counter",
                 is_on_fn=lambda value, idx=idx: bool(
-                    coordinator.data.get(f"counter_{idx}_enabled")
+                    (coordinator.data or {}).get(f"counter_{idx}_enabled")
                 ),
                 turn_on_fn=lambda value: value,
                 turn_off_fn=lambda value: value,
@@ -168,7 +168,7 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
 
     @property
     def _alarm_mode_value(self) -> int:
-        return int(self.coordinator.data.get("alarm_mode_raw", 0))
+        return int((self.coordinator.data or {}).get("alarm_mode_raw", 0))
 
     @property
     def is_on(self) -> bool:
