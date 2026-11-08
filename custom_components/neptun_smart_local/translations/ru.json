@@ -1,0 +1,229 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Neptun Smart",
+        "description": "Настройка подключения к Neptun Smart по Modbus TCP",
+        "data": {
+          "name": "Имя",
+          "host": "Хост",
+          "port": "Порт",
+          "timeout": "Таймаут (секунды)",
+          "scan_interval": "Интервал опроса (секунды)",
+          "unavailable_grace_period": "Задержка перед переходом в статус 'Недоступен' (секунды)",
+          "ignore_zero_counter_values": "Игнорировать нулевые показания счетчиков воды"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Не удалось подключиться к контроллеру"
+    },
+    "abort": {
+      "already_configured": "Этот контроллер уже настроен",
+      "cannot_connect": "Не удалось подключиться к контроллеру"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Параметры Neptun Smart",
+        "data": {
+          "host": "Хост",
+          "port": "Порт",
+          "timeout": "Таймаут (секунды)",
+          "scan_interval": "Интервал опроса (секунды)",
+          "unavailable_grace_period": "Задержка перед переходом в статус 'Недоступен' (секунды)",
+          "ignore_zero_counter_values": "Игнорировать нулевые показания счетчиков воды"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "alarm_mode_raw": {
+        "name": "Регистр тревог и режимов (raw)"
+      },
+      "leak_sensor_raw": {
+        "name": "Регистр датчиков протечки (raw)"
+      },
+      "detected_counters": {
+        "name": "Обнаруженные счетчики"
+      },
+      "wireless_sensor_count": {
+        "name": "Подключенные беспроводные датчики"
+      },
+      "wireless_raw": {
+        "name": "Беспроводной датчик {number} (raw)"
+      },
+      "wireless_battery": {
+        "name": "Уровень заряда датчика {number}"
+      },
+      "wireless_signal": {
+        "name": "Уровень сигнала датчика {number}"
+      },
+      "water_counter": {
+        "name": "Счетчик воды S{slot} P{port}"
+      },
+      "counter_status_code": {
+        "name": "Код статуса счетчика {number}"
+      },
+      "counter_connection_type": {
+        "name": "Тип подключения счетчика {number}"
+      },
+      "counter_namur_error": {
+        "name": "Ошибка Namur счетчика {number}"
+      }
+    },
+    "binary_sensor": {
+      "floor_washing_mode": {
+        "name": "Режим уборки пола"
+      },
+      "alarm_zone_1": {
+        "name": "Тревога: Зона 1"
+      },
+      "alarm_zone_2": {
+        "name": "Тревога: Зона 2"
+      },
+      "zone_1": {
+        "name": "Зона 1"
+      },
+      "zone_2": {
+        "name": "Зона 2"
+      },
+      "keypad_locks": {
+        "name": "Блокировка клавиатуры"
+      },
+      "dual_zone_mode": {
+        "name": "Двухзонный режим"
+      },
+      "close_group_1_on_sensor_loss": {
+        "name": "Закрывать группу 1 при потере датчика"
+      },
+      "close_group_2_on_sensor_loss": {
+        "name": "Закрывать группу 2 при потере датчика"
+      },
+      "leak_sensor": {
+        "name": "Датчик протечки {number}"
+      },
+      "counter_status": {
+        "name": "Статус счетчика {number}"
+      },
+      "battery_drain_wireless_sensors": {
+        "name": "Разряд батареи в беспроводных датчиках"
+      },
+      "lost_connection_wireless_sensors": {
+        "name": "Потеря связи с беспроводными датчиками"
+      },
+      "wireless_alarm": {
+        "name": "Тревога датчика {number}"
+      },
+      "wireless_category": {
+        "name": "Наличие категории датчика {number}"
+      },
+      "wireless_loss": {
+        "name": "Потеря связи с датчиком {number}"
+      }
+    },
+    "switch": {
+      "zone_1": {
+        "name": "Зона 1"
+      },
+      "zone_2": {
+        "name": "Зона 2"
+      },
+      "zone_1_2": {
+        "name": "Зона 1 + Зона 2"
+      },
+      "dual_zone_mode": {
+        "name": "Двухзонный режим"
+      },
+      "floor_washing_mode": {
+        "name": "Режим уборки пола"
+      },
+      "keypad_locks": {
+        "name": "Блокировка клавиатуры"
+      },
+      "closing_taps_on_sensor_lost": {
+        "name": "Перекрытие кранов при потере датчика"
+      },
+      "close_group_1_on_sensor_loss": {
+        "name": "Закрывать группу 1 при потере датчика"
+      },
+      "close_group_2_on_sensor_loss": {
+        "name": "Закрывать группу 2 при потере датчика"
+      },
+      "add_new_sensor": {
+        "name": "Добавить беспроводной датчик"
+      },
+      "counter_enabled": {
+        "name": "Счетчик {number} включен"
+      }
+    },
+    "number": {
+      "modbus_address": {
+        "name": "Адрес Modbus"
+      },
+      "counter_calibration": {
+        "name": "Калибровка счетчика {number}"
+      }
+    },
+    "select": {
+      "line_type": {
+        "name": "Тип входа линии {number}",
+        "state": {
+          "sensors": "Датчики",
+          "button": "Кнопка"
+        }
+      },
+      "line_group": {
+        "name": "Группа кранов линии {number}",
+        "state": {
+          "none": "Нет",
+          "group_1": "Группа 1",
+          "group_2": "Группа 2",
+          "group_1_2": "Группа 1 + 2"
+        }
+      },
+      "relay_alarm_group": {
+        "name": "Группа реле при тревоге",
+        "state": {
+          "none": "Нет",
+          "group_1": "Группа 1",
+          "group_2": "Группа 2",
+          "group_1_2": "Группа 1 + 2"
+        }
+      },
+      "relay_close_group": {
+        "name": "Группа реле при закрытии кранов",
+        "state": {
+          "none": "Нет",
+          "group_1": "Группа 1",
+          "group_2": "Группа 2",
+          "group_1_2": "Группа 1 + 2"
+        }
+      },
+      "modbus_baud": {
+        "name": "Скорость Modbus"
+      },
+      "counter_step": {
+        "name": "Шаг счетчика {number}"
+      },
+      "counter_connection_type": {
+        "name": "Тип подключения счетчика {number}",
+        "state": {
+          "normal": "Обычный",
+          "namur": "Namur"
+        }
+      },
+      "wireless_group": {
+        "name": "Группа беспроводного датчика {number}",
+        "state": {
+          "none": "Нет",
+          "group_1": "Группа 1",
+          "group_2": "Группа 2",
+          "group_1_2": "Группа 1 + 2"
+        }
+      }
+    }
+  }
+}

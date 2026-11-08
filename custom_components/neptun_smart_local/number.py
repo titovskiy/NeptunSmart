@@ -51,8 +51,9 @@ class NeptunCounterCalibrationNumber(NeptunSmartEntity, NumberEntity):
         super().__init__(
             coordinator,
             entry,
-            f"counter_{counter_index}_calibration",
-            f"Counter {counter_index} Calibration",
+            key=f"counter_{counter_index}_calibration",
+            translation_key="counter_calibration",
+            translation_placeholders={"number": str(counter_index)},
         )
         self._counter_index = counter_index
         self._water_key = _counter_water_key(counter_index)
@@ -86,8 +87,8 @@ class NeptunModbusAddressNumber(NeptunSmartEntity, NumberEntity):
         super().__init__(
             coordinator,
             entry,
-            "modbus_address",
-            "Modbus Address",
+            key="modbus_address",
+            translation_key="modbus_address",
         )
 
     @property
@@ -98,9 +99,4 @@ class NeptunModbusAddressNumber(NeptunSmartEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set module modbus address."""
-        address = max(0, min(247, int(round(value))))
-        await self.coordinator.async_write_register_transform(
-            address=5,
-            data_key="modbus_cfg_raw",
-            transform=lambda current: (int(current) & 0x00FF) | ((address & 0xFF) << 8),
-        )
+        await self.coordinator.async_write_modbus_address(int(value))

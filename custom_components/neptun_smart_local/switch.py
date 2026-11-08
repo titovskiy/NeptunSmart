@@ -37,12 +37,13 @@ class NeptunSwitchDescription(SwitchEntityDescription):
     turn_on_fn: Callable[[int], int]
     turn_off_fn: Callable[[int], int]
     available_fn: Callable[[int], bool] | None = None
+    translation_placeholders: dict[str, str] | None = None
 
 
 BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     NeptunSwitchDescription(
         key="zona_1_switch",
-        name="Zona 1 Switch",
+        translation_key="zone_1",
         icon="mdi:water-pump",
         is_on_fn=lambda value: bool(value & BIT_ZONE_1),
         turn_on_fn=toggle_zone_1_on,
@@ -50,7 +51,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="zona_2_switch",
-        name="Zona 2 Switch",
+        translation_key="zone_2",
         icon="mdi:water-pump",
         is_on_fn=lambda value: bool(value & BIT_ZONE_2),
         turn_on_fn=lambda value: set_bits(value, BIT_ZONE_2),
@@ -59,7 +60,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="zona_1_2_switch",
-        name="Zona 1 + Zona 2 Switch",
+        translation_key="zone_1_2",
         icon="mdi:valve",
         is_on_fn=lambda value: bool((value & MASK_ZONE_BOTH) == MASK_ZONE_BOTH),
         turn_on_fn=lambda value: set_bits(value, MASK_ZONE_BOTH),
@@ -67,7 +68,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="dual_zone_mode_switch",
-        name="Dual Zone Mode Switch",
+        translation_key="dual_zone_mode",
         icon="mdi:tally-mark-2",
         is_on_fn=lambda value: bool(value & BIT_DUAL_ZONE_MODE),
         turn_on_fn=lambda value: set_bits(value, BIT_DUAL_ZONE_MODE),
@@ -75,7 +76,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="floor_washing_mode_switch",
-        name="Floor Washing Mode Switch",
+        translation_key="floor_washing_mode",
         icon="mdi:shower",
         is_on_fn=lambda value: bool(value & BIT_FLOOR_WASHING_MODE),
         turn_on_fn=lambda value: set_bits(value, BIT_FLOOR_WASHING_MODE),
@@ -83,7 +84,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="keypad_locks_switch",
-        name="Keypad Locks Switch",
+        translation_key="keypad_locks",
         icon="mdi:keyboard",
         is_on_fn=lambda value: bool(value & BIT_KEYPAD_LOCKS),
         turn_on_fn=lambda value: set_bits(value, BIT_KEYPAD_LOCKS),
@@ -91,7 +92,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="closing_taps_on_sensor_lost_switch",
-        name="Closing Taps on Sensor Lost",
+        translation_key="closing_taps_on_sensor_lost",
         icon="mdi:water-off",
         is_on_fn=lambda value: bool(value & BIT_CLOSE_TAPS_ON_SENSOR_LOST),
         turn_on_fn=lambda value: set_bits(value, BIT_CLOSE_TAPS_ON_SENSOR_LOST),
@@ -99,7 +100,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="close_group_1_on_sensor_loss_switch",
-        name="Close Group 1 on Sensor Loss",
+        translation_key="close_group_1_on_sensor_loss",
         icon="mdi:valve",
         is_on_fn=lambda value: bool(value & BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS),
         turn_on_fn=lambda value: set_bits(value, BIT_CLOSE_GROUP_1_ON_SENSOR_LOSS),
@@ -107,7 +108,7 @@ BASE_DESCRIPTIONS: tuple[NeptunSwitchDescription, ...] = (
     ),
     NeptunSwitchDescription(
         key="close_group_2_on_sensor_loss_switch",
-        name="Close Group 2 on Sensor Loss",
+        translation_key="close_group_2_on_sensor_loss",
         icon="mdi:valve",
         is_on_fn=lambda value: bool(value & BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS),
         turn_on_fn=lambda value: set_bits(value, BIT_CLOSE_GROUP_2_ON_SENSOR_LOSS),
@@ -127,7 +128,7 @@ async def async_setup_entry(
     descriptions.append(
         NeptunSwitchDescription(
             key="add_new_sensor_switch",
-            name="Add New Sensor",
+            translation_key="add_new_sensor",
             icon="mdi:wifi-plus",
             is_on_fn=lambda value: bool(value & BIT_WIRELESS_PAIRING),
             turn_on_fn=lambda value: set_bits(value, BIT_WIRELESS_PAIRING),
@@ -138,7 +139,8 @@ async def async_setup_entry(
         descriptions.append(
             NeptunSwitchDescription(
                 key=f"counter_{idx}_enabled_switch",
-                name=f"Counter {idx} Enabled",
+                translation_key="counter_enabled",
+                translation_placeholders={"number": str(idx)},
                 icon="mdi:counter",
                 is_on_fn=lambda value, idx=idx: bool(
                     (coordinator.data or {}).get(f"counter_{idx}_enabled")
@@ -163,7 +165,14 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
         entry: ConfigEntry,
         description: NeptunSwitchDescription,
     ) -> None:
-        super().__init__(coordinator, entry, description.key, description.name)
+        super().__init__(
+            coordinator,
+            entry,
+            key=description.key,
+            name=description.name,
+            translation_key=description.translation_key,
+            translation_placeholders=description.translation_placeholders,
+        )
         self.entity_description = description
 
     @property
@@ -189,8 +198,9 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs) -> None:
         """Turn switch on."""
         if not self.available:
+            name = self.name or self.entity_id or self._key
             raise HomeAssistantError(
-                f"{self.name} is unavailable, command is blocked"
+                f"{name} is unavailable, command is blocked"
             )
         if self.entity_description.key.endswith("_enabled_switch"):
             idx = int(self.entity_description.key.split("_")[1])
@@ -207,8 +217,9 @@ class NeptunSmartSwitch(NeptunSmartEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs) -> None:
         """Turn switch off."""
         if not self.available:
+            name = self.name or self.entity_id or self._key
             raise HomeAssistantError(
-                f"{self.name} is unavailable, command is blocked"
+                f"{name} is unavailable, command is blocked"
             )
         if self.entity_description.key.endswith("_enabled_switch"):
             idx = int(self.entity_description.key.split("_")[1])

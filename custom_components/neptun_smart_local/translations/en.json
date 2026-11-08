@@ -37,5 +37,193 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "alarm_mode_raw": {
+        "name": "Alarm and mode raw"
+      },
+      "leak_sensor_raw": {
+        "name": "Leak sensor raw"
+      },
+      "detected_counters": {
+        "name": "Detected counters"
+      },
+      "wireless_sensor_count": {
+        "name": "Connected wireless sensors"
+      },
+      "wireless_raw": {
+        "name": "Wireless sensor {number} raw"
+      },
+      "wireless_battery": {
+        "name": "Battery level sensor {number}"
+      },
+      "wireless_signal": {
+        "name": "Sensor signal level {number}"
+      },
+      "water_counter": {
+        "name": "Water counter S{slot} P{port}"
+      },
+      "counter_status_code": {
+        "name": "Counter {number} status code"
+      },
+      "counter_connection_type": {
+        "name": "Counter {number} connection type"
+      },
+      "counter_namur_error": {
+        "name": "Counter {number} Namur error"
+      }
+    },
+    "binary_sensor": {
+      "floor_washing_mode": {
+        "name": "Floor washing mode"
+      },
+      "alarm_zone_1": {
+        "name": "Alarm zone 1"
+      },
+      "alarm_zone_2": {
+        "name": "Alarm zone 2"
+      },
+      "zone_1": {
+        "name": "Zone 1"
+      },
+      "zone_2": {
+        "name": "Zone 2"
+      },
+      "keypad_locks": {
+        "name": "Keypad locks"
+      },
+      "dual_zone_mode": {
+        "name": "Dual zone mode"
+      },
+      "close_group_1_on_sensor_loss": {
+        "name": "Close group 1 on sensor loss"
+      },
+      "close_group_2_on_sensor_loss": {
+        "name": "Close group 2 on sensor loss"
+      },
+      "leak_sensor": {
+        "name": "Leak sensor {number}"
+      },
+      "counter_status": {
+        "name": "Counter {number} status"
+      },
+      "battery_drain_wireless_sensors": {
+        "name": "Battery drain in wireless sensors"
+      },
+      "lost_connection_wireless_sensors": {
+        "name": "Lost connection with wireless sensors"
+      },
+      "wireless_alarm": {
+        "name": "Presence of alarm sensor {number}"
+      },
+      "wireless_category": {
+        "name": "Availability of category sensor {number}"
+      },
+      "wireless_loss": {
+        "name": "Sensor loss sensor {number}"
+      }
+    },
+    "switch": {
+      "zone_1": {
+        "name": "Zone 1"
+      },
+      "zone_2": {
+        "name": "Zone 2"
+      },
+      "zone_1_2": {
+        "name": "Zone 1 + Zone 2"
+      },
+      "dual_zone_mode": {
+        "name": "Dual zone mode"
+      },
+      "floor_washing_mode": {
+        "name": "Floor washing mode"
+      },
+      "keypad_locks": {
+        "name": "Keypad locks"
+      },
+      "closing_taps_on_sensor_lost": {
+        "name": "Closing taps on sensor lost"
+      },
+      "close_group_1_on_sensor_loss": {
+        "name": "Close group 1 on sensor loss"
+      },
+      "close_group_2_on_sensor_loss": {
+        "name": "Close group 2 on sensor loss"
+      },
+      "add_new_sensor": {
+        "name": "Add new wireless sensor"
+      },
+      "counter_enabled": {
+        "name": "Counter {number} enabled"
+      }
+    },
+    "number": {
+      "modbus_address": {
+        "name": "Modbus address"
+      },
+      "counter_calibration": {
+        "name": "Counter {number} calibration"
+      }
+    },
+    "select": {
+      "line_type": {
+        "name": "Line {number} input type",
+        "state": {
+          "sensors": "Sensors",
+          "button": "Button"
+        }
+      },
+      "line_group": {
+        "name": "Line {number} valve group",
+        "state": {
+          "none": "None",
+          "group_1": "Group 1",
+          "group_2": "Group 2",
+          "group_1_2": "Group 1 + 2"
+        }
+      },
+      "relay_alarm_group": {
+        "name": "Relay on alarm group",
+        "state": {
+          "none": "None",
+          "group_1": "Group 1",
+          "group_2": "Group 2",
+          "group_1_2": "Group 1 + 2"
+        }
+      },
+      "relay_close_group": {
+        "name": "Relay on valve close group",
+        "state": {
+          "none": "None",
+          "group_1": "Group 1",
+          "group_2": "Group 2",
+          "group_1_2": "Group 1 + 2"
+        }
+      },
+      "modbus_baud": {
+        "name": "Modbus baud rate"
+      },
+      "counter_step": {
+        "name": "Counter {number} step"
+      },
+      "counter_connection_type": {
+        "name": "Counter {number} connection type",
+        "state": {
+          "normal": "Normal",
+          "namur": "Namur"
+        }
+      },
+      "wireless_group": {
+        "name": "Wireless sensor {number} group",
+        "state": {
+          "none": "None",
+          "group_1": "Group 1",
+          "group_2": "Group 2",
+          "group_1_2": "Group 1 + 2"
+        }
+      }
+    }
   }
 }

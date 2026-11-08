@@ -41,7 +41,7 @@ class NeptunBinarySensorDescription(BinarySensorEntityDescription):
 BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
     NeptunBinarySensorDescription(
         key="floor_washing_mode",
-        name="Floor Washing Mode",
+        translation_key="floor_washing_mode",
         icon="mdi:shower",
         enabled_default=False,
         diagnostic=True,
@@ -49,31 +49,31 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
     ),
     NeptunBinarySensorDescription(
         key="alarm_zone_1",
-        name="Alarm zona 1",
+        translation_key="alarm_zone_1",
         icon="mdi:alert",
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_ALARM_ZONE_1)),
     ),
     NeptunBinarySensorDescription(
         key="alarm_zone_2",
-        name="Alarm zona 2",
+        translation_key="alarm_zone_2",
         icon="mdi:alert",
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_ALARM_ZONE_2)),
     ),
     NeptunBinarySensorDescription(
         key="zona_1",
-        name="Zona 1",
+        translation_key="zone_1",
         icon="mdi:water-pump",
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_ZONE_1)),
     ),
     NeptunBinarySensorDescription(
         key="zona_2",
-        name="Zona 2",
+        translation_key="zone_2",
         icon="mdi:water-pump",
         value_fn=lambda d: bool((d.get("alarm_mode_raw", 0) & BIT_ZONE_2)),
     ),
     NeptunBinarySensorDescription(
         key="keypad_locks",
-        name="Keypad Locks",
+        translation_key="keypad_locks",
         icon="mdi:keyboard",
         enabled_default=False,
         diagnostic=True,
@@ -81,7 +81,7 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
     ),
     NeptunBinarySensorDescription(
         key="dual_zone_mode",
-        name="Dual Zone Mode",
+        translation_key="dual_zone_mode",
         icon="mdi:tally-mark-2",
         enabled_default=False,
         diagnostic=True,
@@ -89,7 +89,7 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
     ),
     NeptunBinarySensorDescription(
         key="close_group_1_on_sensor_loss",
-        name="Close Group 1 on Sensor Loss",
+        translation_key="close_group_1_on_sensor_loss",
         icon="mdi:valve",
         enabled_default=False,
         diagnostic=True,
@@ -97,7 +97,7 @@ BASE_BINARY_SENSORS: tuple[NeptunBinarySensorDescription, ...] = (
     ),
     NeptunBinarySensorDescription(
         key="close_group_2_on_sensor_loss",
-        name="Close Group 2 on Sensor Loss",
+        translation_key="close_group_2_on_sensor_loss",
         icon="mdi:valve",
         enabled_default=False,
         diagnostic=True,
@@ -125,10 +125,11 @@ async def async_setup_entry(
                 entry,
                 NeptunBinarySensorDescription(
                     key=f"leak_sensor_{idx}",
-                    name=f"LeakSensor {idx}",
+                    translation_key="leak_sensor",
                     icon="mdi:water-alert",
                     value_fn=lambda d, mask=mask: bool(d.get("leak_sensor_raw", 0) & mask),
                 ),
+                translation_placeholders={"number": str(idx)},
             )
         )
 
@@ -139,12 +140,13 @@ async def async_setup_entry(
                 entry,
                 NeptunBinarySensorDescription(
                     key=f"counter_{idx}_enabled",
-                    name=f"Counter {idx} Status",
+                    translation_key="counter_status",
                     icon="mdi:counter",
                     enabled_default=False,
                     diagnostic=True,
                     value_fn=lambda d, idx=idx: bool(d.get(f"counter_{idx}_enabled")),
                 ),
+                translation_placeholders={"number": str(idx)},
             )
         )
 
@@ -156,7 +158,7 @@ async def async_setup_entry(
                     entry,
                     NeptunBinarySensorDescription(
                         key="battery_drain_wireless_sensors",
-                        name="Battery Drain in Wireless Sensors",
+                        translation_key="battery_drain_wireless_sensors",
                         icon="mdi:battery-alert",
                         enabled_default=False,
                         diagnostic=True,
@@ -168,7 +170,7 @@ async def async_setup_entry(
                     entry,
                     NeptunBinarySensorDescription(
                         key="lost_connection_wireless_sensors",
-                        name="Lost Connection with Wireless Sensors",
+                        translation_key="lost_connection_wireless_sensors",
                         icon="mdi:signal-off",
                         enabled_default=False,
                         diagnostic=True,
@@ -186,34 +188,37 @@ async def async_setup_entry(
                         entry,
                         NeptunBinarySensorDescription(
                             key=f"wireless_{idx}_alarm",
-                            name=f"Presence of Alarm Sensor {idx}",
+                            translation_key="wireless_alarm",
                             icon="mdi:alarm",
                             value_fn=lambda d, idx=idx: bool(d.get(f"wireless_{idx}_alarm")),
                         ),
+                        translation_placeholders={"number": str(idx)},
                     ),
                     NeptunSmartBinarySensor(
                         coordinator,
                         entry,
                         NeptunBinarySensorDescription(
                             key=f"wireless_{idx}_category",
-                            name=f"Availability of Category Sensor {idx}",
+                            translation_key="wireless_category",
                             icon="mdi:check-circle",
                             enabled_default=False,
                             diagnostic=True,
                             value_fn=lambda d, idx=idx: bool(d.get(f"wireless_{idx}_category")),
                         ),
+                        translation_placeholders={"number": str(idx)},
                     ),
                     NeptunSmartBinarySensor(
                         coordinator,
                         entry,
                         NeptunBinarySensorDescription(
                             key=f"wireless_{idx}_loss",
-                            name=f"Sensor Loss Sensor {idx}",
+                            translation_key="wireless_loss",
                             icon="mdi:alert-circle",
                             enabled_default=False,
                             diagnostic=True,
                             value_fn=lambda d, idx=idx: bool(d.get(f"wireless_{idx}_loss")),
                         ),
+                        translation_placeholders={"number": str(idx)},
                     ),
                 ]
             )
@@ -231,8 +236,16 @@ class NeptunSmartBinarySensor(NeptunSmartEntity, BinarySensorEntity):
         coordinator,
         entry: ConfigEntry,
         description: NeptunBinarySensorDescription,
+        translation_placeholders: dict[str, str] | None = None,
     ) -> None:
-        super().__init__(coordinator, entry, description.key, description.name)
+        super().__init__(
+            coordinator,
+            entry,
+            key=description.key,
+            name=description.name,
+            translation_key=description.translation_key,
+            translation_placeholders=translation_placeholders,
+        )
         self.entity_description = description
         self._attr_entity_registry_enabled_default = description.enabled_default
         if description.diagnostic:

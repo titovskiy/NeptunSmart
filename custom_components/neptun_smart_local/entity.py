@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -20,12 +21,19 @@ class NeptunSmartEntity(CoordinatorEntity[NeptunSmartCoordinator]):
         coordinator: NeptunSmartCoordinator,
         entry: ConfigEntry,
         key: str,
-        name: str,
+        name: str | UndefinedType | None = None,
+        translation_key: str | None = None,
+        translation_placeholders: dict[str, str] | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
         self._key = key
-        self._attr_name = name
+        if translation_key is not None:
+            self._attr_translation_key = translation_key
+        if translation_placeholders is not None:
+            self._attr_translation_placeholders = translation_placeholders
+        if name is not None and name is not UNDEFINED:
+            self._attr_name = name
         self._attr_unique_id = f"{coordinator.unique_prefix}_{key}"
 
     @property

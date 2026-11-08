@@ -1,10 +1,10 @@
 {
   "domain": "neptun_smart_local",
   "name": "Neptun Smart",
-  "codeowners": [],
+  "codeowners": ["@titovskiy"],
   "config_flow": true,
-  "documentation": "https://github.com/home-assistant/core",
+  "documentation": "https://github.com/titovskiy/NeptunSmart",
   "iot_class": "local_polling",
   "requirements": ["pymodbus>=3.11.0,<4.0"],
-  "version": "0.6"
+  "version": "0.7"
 }

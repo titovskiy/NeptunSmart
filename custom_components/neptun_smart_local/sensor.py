@@ -33,7 +33,7 @@ class NeptunSensorDescription(SensorEntityDescription):
 BASE_SENSORS: tuple[NeptunSensorDescription, ...] = (
     NeptunSensorDescription(
         key="alarm_mode_raw",
-        name="Alarm and Mode Raw",
+        translation_key="alarm_mode_raw",
         icon="mdi:code-braces",
         enabled_default=False,
         diagnostic=True,
@@ -41,13 +41,13 @@ BASE_SENSORS: tuple[NeptunSensorDescription, ...] = (
     ),
     NeptunSensorDescription(
         key="leak_sensor_raw",
-        name="Leak Sensor Raw",
+        translation_key="leak_sensor_raw",
         icon="mdi:water-alert",
         value_fn=lambda d: d.get("leak_sensor_raw"),
     ),
     NeptunSensorDescription(
         key="detected_counters",
-        name="Detected Counters",
+        translation_key="detected_counters",
         icon="mdi:counter",
         native_unit_of_measurement="pcs",
         enabled_default=False,
@@ -65,7 +65,9 @@ async def async_setup_entry(
     """Set up Neptun Smart sensors from config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
-    entities: list[SensorEntity] = [NeptunSmartSensor(coordinator, entry, desc) for desc in BASE_SENSORS]
+    entities: list[SensorEntity] = [
+        NeptunSmartSensor(coordinator, entry, desc) for desc in BASE_SENSORS
+    ]
 
     if coordinator.installed_wireless_sensors:
         entities.append(
@@ -74,7 +76,7 @@ async def async_setup_entry(
                 entry,
                 NeptunSensorDescription(
                     key="wireless_sensor_count",
-                    name="Connected Wireless Sensors",
+                    translation_key="wireless_sensor_count",
                     icon="mdi:wifi",
                     native_unit_of_measurement="pcs",
                     enabled_default=False,
@@ -91,12 +93,13 @@ async def async_setup_entry(
                     entry,
                     NeptunSensorDescription(
                         key=f"wireless_{idx}_raw",
-                        name=f"Wireless Sensor {idx} Raw",
+                        translation_key="wireless_raw",
                         icon="mdi:chip",
                         enabled_default=False,
                         diagnostic=True,
                         value_fn=lambda d, idx=idx: d.get(f"wireless_{idx}_raw"),
                     ),
+                    translation_placeholders={"number": str(idx)},
                 )
             )
             entities.append(
@@ -105,7 +108,7 @@ async def async_setup_entry(
                     entry,
                     NeptunSensorDescription(
                         key=f"wireless_{idx}_battery",
-                        name=f"Battery Level Sensor {idx}",
+                        translation_key="wireless_battery",
                         icon="mdi:battery",
                         device_class=SensorDeviceClass.BATTERY,
                         native_unit_of_measurement=PERCENTAGE,
@@ -113,6 +116,7 @@ async def async_setup_entry(
                         diagnostic=True,
                         value_fn=lambda d, idx=idx: d.get(f"wireless_{idx}_battery"),
                     ),
+                    translation_placeholders={"number": str(idx)},
                 )
             )
             entities.append(
@@ -121,13 +125,14 @@ async def async_setup_entry(
                     entry,
                     NeptunSensorDescription(
                         key=f"wireless_{idx}_signal",
-                        name=f"Sensor Signal Level {idx}",
+                        translation_key="wireless_signal",
                         icon="mdi:signal",
                         native_unit_of_measurement=PERCENTAGE,
                         enabled_default=False,
                         diagnostic=True,
                         value_fn=lambda d, idx=idx: d.get(f"wireless_{idx}_signal"),
                     ),
+                    translation_placeholders={"number": str(idx)},
                 )
             )
 
@@ -141,7 +146,7 @@ async def async_setup_entry(
                 entry,
                 NeptunSensorDescription(
                     key=key,
-                    name=f"Water counter S{slot} P{port}",
+                    translation_key="water_counter",
                     icon="mdi:water",
                     device_class=SensorDeviceClass.WATER,
                     state_class=SensorStateClass.TOTAL_INCREASING,
@@ -149,6 +154,7 @@ async def async_setup_entry(
                     suggested_display_precision=3,
                     value_fn=lambda d, key=key: d.get(key),
                 ),
+                translation_placeholders={"slot": str(slot), "port": str(port)},
             )
         )
 
@@ -159,12 +165,13 @@ async def async_setup_entry(
                 entry,
                 NeptunSensorDescription(
                     key=f"counter_{idx}_status_code",
-                    name=f"Counter {idx} Status Code",
+                    translation_key="counter_status_code",
                     icon="mdi:list-status",
                     enabled_default=False,
                     diagnostic=True,
                     value_fn=lambda d, idx=idx: d.get(f"counter_{idx}_status_code"),
                 ),
+                translation_placeholders={"number": str(idx)},
             )
         )
         entities.append(
@@ -173,12 +180,13 @@ async def async_setup_entry(
                 entry,
                 NeptunSensorDescription(
                     key=f"counter_{idx}_connection_type",
-                    name=f"Counter {idx} Connection Type",
+                    translation_key="counter_connection_type",
                     icon="mdi:connection",
                     enabled_default=False,
                     diagnostic=True,
                     value_fn=lambda d, idx=idx: d.get(f"counter_{idx}_connection_type"),
                 ),
+                translation_placeholders={"number": str(idx)},
             )
         )
         entities.append(
@@ -187,12 +195,13 @@ async def async_setup_entry(
                 entry,
                 NeptunSensorDescription(
                     key=f"counter_{idx}_namur_error",
-                    name=f"Counter {idx} Namur Error",
+                    translation_key="counter_namur_error",
                     icon="mdi:alert-circle",
                     enabled_default=False,
                     diagnostic=True,
                     value_fn=lambda d, idx=idx: d.get(f"counter_{idx}_namur_error"),
                 ),
+                translation_placeholders={"number": str(idx)},
             )
         )
 
@@ -209,8 +218,16 @@ class NeptunSmartSensor(NeptunSmartEntity, SensorEntity):
         coordinator,
         entry: ConfigEntry,
         description: NeptunSensorDescription,
+        translation_placeholders: dict[str, str] | None = None,
     ) -> None:
-        super().__init__(coordinator, entry, description.key, description.name)
+        super().__init__(
+            coordinator,
+            entry,
+            key=description.key,
+            name=description.name,
+            translation_key=description.translation_key,
+            translation_placeholders=translation_placeholders,
+        )
         self.entity_description = description
         self._attr_entity_registry_enabled_default = description.enabled_default
         if description.diagnostic:
