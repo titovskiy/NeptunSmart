@@ -4,7 +4,8 @@
   "codeowners": ["@titovskiy"],
   "config_flow": true,
   "documentation": "https://github.com/titovskiy/NeptunSmart",
+  "issue_tracker": "https://github.com/titovskiy/NeptunSmart/issues",
   "iot_class": "local_polling",
   "requirements": ["pymodbus>=3.11.0,<4.0"],
-  "version": "0.7"
+  "version": "0.7.1"
 }
